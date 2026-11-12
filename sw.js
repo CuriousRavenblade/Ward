@@ -1,5 +1,5 @@
 // Ward Tasks offline cache. Opens from cache instantly, refreshes quietly when online.
-const CACHE = 'ward-tasks-v1';
+const CACHE = 'ward-tasks-v2';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
