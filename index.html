@@ -183,13 +183,55 @@ body.booting *{transition:none!important}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
 }
+
+/* ---------- v3: sections, due dates, flags, repeat ---------- */
+.eyebrow{font-size:13px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--blue-300);margin-bottom:6px}
+.overdue-note{font-size:16px;font-weight:500;color:var(--blue-a200)}
+.task-meta{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;font-size:13px;line-height:18px;color:var(--white-2);font-variant-numeric:tabular-nums}
+.task-meta svg{flex:none;width:14px;height:14px;fill:var(--blue-300)}
+.task-meta .flag-ic{fill:var(--blue-a200)}
+.task-meta .due.overdue{color:var(--blue-a200);font-weight:500}
+.tasks.done .task-meta,.tasks.done .task-meta .due{color:var(--white-3);font-weight:400}
+.tasks.done .task-meta svg{fill:var(--white-3)}
+.main.slide-l{animation:slideL .32s var(--ease)}
+.main.slide-r{animation:slideR .32s var(--ease)}
+@keyframes slideL{from{opacity:0;transform:translateX(36px)}}
+@keyframes slideR{from{opacity:0;transform:translateX(-36px)}}
+
+/* bottom section switcher, either side of the plus */
+.nav{
+  position:fixed;z-index:19;left:0;right:0;bottom:0;
+  padding:0 max(16px, env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + var(--fab-gap) + var(--fab) / 2 - 32px) max(16px, env(safe-area-inset-left,0px));
+  display:grid;grid-template-columns:1fr var(--fab) 1fr;column-gap:20px;align-items:center;
+  max-width:640px;margin:0 auto;pointer-events:none;
+}
+.nav-btn{pointer-events:auto;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:64px;color:var(--white-2);font-size:13px;font-weight:500;letter-spacing:.01em;transition:color .2s}
+.nav-ind{position:relative;width:64px;height:32px;border-radius:16px;display:grid;place-items:center;transition:background-color .25s var(--ease)}
+.nav-ind svg{width:22px;height:22px;fill:var(--blue-300);transition:fill .2s}
+.nav-btn[aria-selected="true"]{color:var(--white)}
+.nav-btn[aria-selected="true"] .nav-ind{background:rgba(41,121,255,.30)}
+.nav-btn[aria-selected="true"] .nav-ind svg{fill:#BBDEFB}
+.nav-btn:active .nav-ind{background:rgba(41,121,255,.20)}
+.nav-badge{position:absolute;top:-5px;right:4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--blue-a400);color:var(--white);font-size:11px;font-weight:500;line-height:18px;text-align:center;font-variant-numeric:tabular-nums;box-shadow:0 0 0 2px var(--black)}
+.empty-hint{bottom:calc(env(safe-area-inset-bottom,0px) + var(--fab-gap) + var(--fab) + 26px)}
+
+/* chips in the task window */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.chip{position:relative;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border:1px solid rgba(68,138,255,.5);border-radius:10px;font-size:14px;font-weight:500;color:var(--white);overflow:hidden;transition:background-color .15s,border-color .15s}
+.chip svg{flex:none;width:18px;height:18px;fill:var(--blue-300)}
+.chip.on{background:rgba(41,121,255,.48);border-color:var(--blue-a200);box-shadow:inset 0 0 0 1px var(--blue-a200)}
+.chip.on svg{fill:#BBDEFB}
+.chip input,.chip select{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;opacity:0;font-size:16px;color:transparent;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer}
+.chip-clear{display:none}
+.dialog h2{margin-bottom:14px}
 </style>
 </head>
 <body>
-<main class="wrap" id="main" hidden>
+<main class="wrap main" id="main" hidden>
   <header class="top">
+    <div class="eyebrow" id="sectionName">Hospital</div>
     <div class="date" id="date"></div>
-    <div class="count"><span class="count-num" id="countNum">0</span><span class="count-label">pending</span></div>
+    <div class="count"><span class="count-num" id="countNum">0</span><span class="count-label">pending</span><span class="overdue-note" id="overdueNote" hidden></span></div>
   </header>
   <p class="all-clear" id="allClear" hidden>Nothing pending.</p>
   <ol class="tasks" id="list" aria-label="Pending tasks"></ol>
@@ -202,7 +244,19 @@ body.booting *{transition:none!important}
   </section>
 </main>
 
-<p class="empty-hint" aria-hidden="true">Tap to add a task</p>
+<p class="empty-hint" id="emptyHint" aria-hidden="true">Tap to add a task</p>
+
+<nav class="nav" role="tablist" aria-label="Sections">
+  <button type="button" class="nav-btn" role="tab" id="tab-hospital" data-section="hospital" aria-selected="true">
+    <span class="nav-ind"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/></svg><span class="nav-badge" id="badge-hospital" hidden></span></span>
+    Hospital
+  </button>
+  <span></span>
+  <button type="button" class="nav-btn" role="tab" id="tab-others" data-section="others" aria-selected="false">
+    <span class="nav-ind"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg><span class="nav-badge" id="badge-others" hidden></span></span>
+    Others
+  </button>
+</nav>
 
 <button type="button" class="fab" id="fab" aria-label="Add task"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
 
@@ -215,6 +269,15 @@ body.booting *{transition:none!important}
     <textarea id="taskInput" rows="1" enterkeyhint="done" autocapitalize="sentences" autocomplete="off" autocorrect="on" spellcheck="true" placeholder="e.g. Bed 12 · repeat CBC" aria-label="Task"></textarea>
   </div>
   <p class="hint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>Tap the mic on your keyboard to dictate</p>
+  <div class="chips">
+    <button type="button" class="chip" id="chipToday">Today</button>
+    <button type="button" class="chip" id="chipTomorrow">Tomorrow</button>
+    <label class="chip" id="chipDate"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg><span id="dateLabel">Date</span><input type="date" id="dateInput" aria-label="Due date"></label>
+    <label class="chip" id="chipTime"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.47 2 2 6.48 2 12s4.47 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg><span id="timeLabel">Time</span><input type="time" id="timeInput" aria-label="Due time"></label>
+    <button type="button" class="chip" id="chipFlag" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>Flag</button>
+    <label class="chip" id="chipRepeat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg><span id="repeatLabel">Repeat</span>
+      <select id="repeatInput" aria-label="Repeat"><option value="none">Never</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
+  </div>
   <div class="actions">
     <button type="button" class="text-btn" id="delBtn" hidden>Delete</button>
     <span class="spacer"></span>
@@ -227,43 +290,104 @@ body.booting *{transition:none!important}
 <script>
 (function () {
   'use strict';
-  var KEY = 'wardTasks.v1';
+  var KEY = 'wardTasks.v2';
+  var OLD_KEY = 'wardTasks.v1';
+  var SEC_KEY = 'wardTasks.section';
+  var SECTIONS = { hospital: 'Hospital', others: 'Others' };
+  var PLACEHOLDER = { hospital: 'e.g. Bed 12 · repeat CBC', others: 'e.g. Pay electricity bill' };
+  var REPEAT_NAMES = { none: 'Repeat', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
   var $ = function (id) { return document.getElementById(id); };
   var input = $('taskInput');
   var motion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+
   var tasks = load();
+  var section = 'hospital';
+  try { var s = localStorage.getItem(SEC_KEY); if (SECTIONS[s]) section = s; } catch (e) {}
   var editingId = null;
-  var draft = '';
+  var draft = { hospital: '', others: '' };
+  var form = blankForm();
   var undoFn = null;
   var snackTimer = 0;
 
   /* ---------- storage (stays on this phone only) ---------- */
+  function clean(t) {
+    return {
+      id: String(t.id), text: t.text, created: t.created || Date.now(),
+      done: !!t.done, doneAt: t.doneAt || null,
+      section: SECTIONS[t.section] ? t.section : 'hospital',
+      dueDate: t.dueDate || '', dueTime: t.dueTime || '',
+      flag: !!t.flag, repeat: REPEAT_NAMES[t.repeat] ? t.repeat : 'none'
+    };
+  }
+  function valid(t) { return t && typeof t.text === 'string' && t.id; }
   function load() {
     try {
       var raw = localStorage.getItem(KEY);
-      var v = raw ? JSON.parse(raw) : [];
-      return Array.isArray(v) ? v.filter(function (t) { return t && typeof t.text === 'string' && t.id; }) : [];
+      if (raw == null) {
+        // first run of this version: bring the old list across into Hospital
+        var old = localStorage.getItem(OLD_KEY);
+        var arr = old ? JSON.parse(old) : [];
+        return Array.isArray(arr) ? arr.filter(valid).map(function (t) { t.section = 'hospital'; return clean(t); }) : [];
+      }
+      var v = JSON.parse(raw);
+      return Array.isArray(v) ? v.filter(valid).map(clean) : [];
     } catch (e) { return []; }
   }
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(tasks)); } catch (e) {}
-  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(tasks)); } catch (e) {} }
+  save();
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+
+  /* ---------- dates ---------- */
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function parseYmd(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function addDays(s, n) { var d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); }
+  function todayStr() { return ymd(new Date()); }
+  function fmtClock(d) { return d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }).toLowerCase(); }
+  function fmtHM(hm) { var p = hm.split(':'); var d = new Date(); d.setHours(+p[0], +p[1], 0, 0); return fmtClock(d); }
+  function dayName(s) {
+    var t = todayStr();
+    if (s === t) return 'Today';
+    if (s === addDays(t, 1)) return 'Tomorrow';
+    if (s === addDays(t, -1)) return 'Yesterday';
+    var d = parseYmd(s), diff = Math.round((d - parseYmd(t)) / 864e5);
+    if (diff > 1 && diff < 7) return d.toLocaleDateString('en-IN', { weekday: 'long' });
+    var o = { weekday: 'short', day: 'numeric', month: 'short' };
+    if (d.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
+    return d.toLocaleDateString('en-IN', o);
+  }
+  function stamp(ms) {
+    var d = new Date(ms), s = ymd(d), t = todayStr();
+    if (s === t) return fmtClock(d);
+    return dayName(s) + ', ' + fmtClock(d);
+  }
+  function isOverdue(t) {
+    if (!t.dueDate || t.done) return false;
+    var now = new Date(), today = todayStr();
+    if (t.dueDate < today) return true;
+    if (t.dueDate > today || !t.dueTime) return false;
+    return t.dueTime < pad(now.getHours()) + ':' + pad(now.getMinutes());
+  }
+  function nextDate(s, rep) {
+    if (rep === 'daily') return addDays(s, 1);
+    if (rep === 'weekly') return addDays(s, 7);
+    var d = parseYmd(s), day = d.getDate();
+    d.setDate(1); d.setMonth(d.getMonth() + 1);
+    var last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    d.setDate(Math.min(day, last));
+    return ymd(d);
+  }
 
   /* ---------- helpers ---------- */
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-  function dayKey(d) { return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); }
-  function fmtTime(ms) {
-    var d = new Date(ms), now = new Date();
-    var t = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
-    if (dayKey(d) === dayKey(now)) return t;
-    var y = new Date(now); y.setDate(now.getDate() - 1);
-    if (dayKey(d) === dayKey(y)) return 'Yesterday, ' + t;
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', ' + t;
-  }
   function find(id) { for (var i = 0; i < tasks.length; i++) if (tasks[i].id === id) return tasks[i]; return null; }
-
-  var CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  function inSection(sec) { return tasks.filter(function (t) { return t.section === sec; }); }
+  function svg(path, cls) { return '<svg viewBox="0 0 24 24" aria-hidden="true"' + (cls ? ' class="' + cls + '"' : '') + '><path d="' + path + '"/></svg>'; }
+  var IC = {
+    flag: 'M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z',
+    repeat: 'M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z',
+    check: 'M5 12.5l4.5 4.5L19 7.5'
+  };
 
   function row(t, n) {
     var li = document.createElement('li');
@@ -281,20 +405,32 @@ body.booting *{transition:none!important}
     var tx = document.createElement('span');
     tx.className = 'task-text';
     tx.textContent = t.text;
-    var tm = document.createElement('span');
-    tm.className = 'task-time';
-    tm.textContent = t.done ? 'Done ' + fmtTime(t.doneAt || t.created) : fmtTime(t.created);
+    var meta = document.createElement('span');
+    meta.className = 'task-meta';
+    if (t.flag) meta.insertAdjacentHTML('beforeend', svg(IC.flag, 'flag-ic'));
+    var label = document.createElement('span');
+    label.className = 'due';
+    if (t.done) {
+      label.textContent = 'Done ' + stamp(t.doneAt || t.created);
+    } else if (t.dueDate) {
+      label.textContent = dayName(t.dueDate) + (t.dueTime ? ', ' + fmtHM(t.dueTime) : '');
+      if (isOverdue(t)) label.classList.add('overdue');
+    } else {
+      label.textContent = stamp(t.created);
+    }
+    meta.appendChild(label);
+    if (t.repeat !== 'none' && !t.done) meta.insertAdjacentHTML('beforeend', svg(IC.repeat));
     body.appendChild(tx);
-    body.appendChild(tm);
+    body.appendChild(meta);
     var lab = document.createElement('label');
     lab.className = 'check';
     var cb = document.createElement('input');
     cb.type = 'checkbox';
-    cb.checked = !!t.done;
+    cb.checked = t.done;
     cb.setAttribute('aria-label', (t.done ? 'Mark not done: ' : 'Mark done: ') + t.text);
     var box = document.createElement('span');
     box.className = 'box';
-    box.innerHTML = CHECK;
+    box.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + IC.check + '"/></svg>';
     lab.appendChild(cb);
     lab.appendChild(box);
     li.appendChild(body);
@@ -303,15 +439,28 @@ body.booting *{transition:none!important}
   }
 
   /* ---------- render ---------- */
-  function render(newId) {
-    var pending = tasks.filter(function (t) { return !t.done; });
-    var done = tasks.filter(function (t) { return t.done; })
+  function render(newId, slide) {
+    var mine = inSection(section);
+    // flagged first, then in the order you added them
+    var pending = mine.filter(function (t) { return !t.done; })
+      .sort(function (a, b) { return (b.flag - a.flag) || (a.created - b.created); });
+    var done = mine.filter(function (t) { return t.done; })
       .sort(function (a, b) { return (b.doneAt || 0) - (a.doneAt || 0); });
+    var overdue = pending.filter(isOverdue).length;
 
-    document.body.classList.toggle('is-empty', tasks.length === 0);
-    $('main').hidden = tasks.length === 0;
+    document.body.classList.toggle('is-empty', mine.length === 0);
+    var main = $('main');
+    main.hidden = mine.length === 0;
+    if (slide && !motion.matches) {
+      main.classList.remove('slide-l', 'slide-r'); void main.offsetWidth; main.classList.add(slide);
+    }
+    $('sectionName').textContent = SECTIONS[section];
     $('date').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
     $('countNum').textContent = pending.length;
+    $('overdueNote').hidden = overdue === 0;
+    $('overdueNote').textContent = '· ' + overdue + ' overdue';
+    $('emptyHint').textContent = section === 'hospital' ? 'Tap to add a hospital task' : 'Tap to add to Others';
+    $('fab').setAttribute('aria-label', 'Add task to ' + SECTIONS[section]);
 
     var list = $('list');
     list.textContent = '';
@@ -328,9 +477,45 @@ body.booting *{transition:none!important}
     done.forEach(function (t) { dl.appendChild(row(t, 0)); });
     $('doneWrap').hidden = done.length === 0;
     $('doneCount').textContent = done.length;
+
+    Object.keys(SECTIONS).forEach(function (k) {
+      var n = tasks.filter(function (t) { return t.section === k && !t.done; }).length;
+      var tab = $('tab-' + k), badge = $('badge-' + k);
+      tab.setAttribute('aria-selected', String(k === section));
+      badge.hidden = n === 0;
+      badge.textContent = n > 99 ? '99+' : n;
+    });
+  }
+
+  function switchTo(sec) {
+    if (sec === section || !SECTIONS[sec]) return;
+    var slide = sec === 'others' ? 'slide-l' : 'slide-r';
+    section = sec;
+    try { localStorage.setItem(SEC_KEY, sec); } catch (e) {}
+    hideSnack();
+    window.scrollTo(0, 0);
+    render(null, slide);
   }
 
   /* ---------- task window ---------- */
+  function blankForm() { return { dueDate: '', dueTime: '', flag: false, repeat: 'none' }; }
+  function paintForm() {
+    var t = todayStr();
+    $('chipToday').classList.toggle('on', form.dueDate === t);
+    $('chipTomorrow').classList.toggle('on', form.dueDate === addDays(t, 1));
+    var custom = form.dueDate && form.dueDate !== t && form.dueDate !== addDays(t, 1);
+    $('chipDate').classList.toggle('on', !!custom);
+    $('dateLabel').textContent = custom ? dayName(form.dueDate) : 'Date';
+    $('dateInput').value = form.dueDate;
+    $('chipTime').classList.toggle('on', !!form.dueTime);
+    $('timeLabel').textContent = form.dueTime ? fmtHM(form.dueTime) : 'Time';
+    $('timeInput').value = form.dueTime;
+    $('chipFlag').classList.toggle('on', form.flag);
+    $('chipFlag').setAttribute('aria-pressed', String(form.flag));
+    $('chipRepeat').classList.toggle('on', form.repeat !== 'none');
+    $('repeatLabel').textContent = REPEAT_NAMES[form.repeat];
+    $('repeatInput').value = form.repeat;
+  }
   function grow() {
     input.style.height = 'auto';
     input.style.height = input.scrollHeight + 'px';
@@ -338,10 +523,15 @@ body.booting *{transition:none!important}
   function openDialog(id) {
     var t = id ? find(id) : null;
     editingId = t ? t.id : null;
-    $('dlgTitle').textContent = t ? 'Edit task' : 'New task';
+    $('dlgTitle').textContent = t ? 'Edit task' : 'New ' + (section === 'hospital' ? 'hospital' : '') + ' task';
+    if (!t && section === 'others') $('dlgTitle').textContent = 'New task · Others';
     $('saveBtn').textContent = t ? 'Save' : 'Add';
     $('delBtn').hidden = !t;
-    input.value = t ? t.text : draft;
+    input.placeholder = PLACEHOLDER[section];
+    input.value = t ? t.text : draft[section];
+    form = t ? { dueDate: t.dueDate, dueTime: t.dueTime, flag: t.flag, repeat: t.repeat } : (form.keep ? form : blankForm());
+    form.keep = false;
+    paintForm();
     $('scrim').hidden = false;
     $('dialog').hidden = false;
     document.body.classList.add('modal-open');
@@ -353,7 +543,10 @@ body.booting *{transition:none!important}
     try { input.setSelectionRange(L, L); } catch (e) {}
   }
   function closeDialog(keepDraft) {
-    if (!editingId) draft = keepDraft ? input.value : '';
+    if (!editingId) {
+      draft[section] = keepDraft ? input.value : '';
+      form.keep = !!(keepDraft && input.value);
+    }
     input.blur();
     $('scrim').hidden = true;
     $('dialog').hidden = true;
@@ -368,16 +561,19 @@ body.booting *{transition:none!important}
       input.focus();
       return;
     }
+    if (form.repeat !== 'none' && !form.dueDate) form.dueDate = todayStr();
     var newId = null;
     if (editingId) {
       var t = find(editingId);
-      if (t) t.text = text;
+      if (t) { t.text = text; t.dueDate = form.dueDate; t.dueTime = form.dueTime; t.flag = form.flag; t.repeat = form.repeat; }
     } else {
       newId = uid();
-      tasks.push({ id: newId, text: text, created: Date.now(), done: false, doneAt: null });
+      tasks.push({ id: newId, text: text, created: Date.now(), done: false, doneAt: null, section: section,
+        dueDate: form.dueDate, dueTime: form.dueTime, flag: form.flag, repeat: form.repeat });
     }
     save();
     input.value = '';
+    form = blankForm();
     closeDialog(false);
     render(newId);
     if (newId) {
@@ -393,6 +589,7 @@ body.booting *{transition:none!important}
     clearTimeout(snackTimer);
     $('snackMsg').textContent = msg;
     undoFn = undo;
+    $('snackAction').hidden = !undo;
     $('snack').hidden = false;
     snackTimer = setTimeout(hideSnack, 6000);
   }
@@ -415,6 +612,36 @@ body.booting *{transition:none!important}
     if (e.key === 'Escape' && !$('dialog').hidden) closeDialog(true);
   });
 
+  // chips
+  $('chipToday').addEventListener('click', function () {
+    var t = todayStr();
+    form.dueDate = form.dueDate === t ? '' : t;
+    if (!form.dueDate) { form.dueTime = ''; form.repeat = 'none'; }
+    paintForm();
+  });
+  $('chipTomorrow').addEventListener('click', function () {
+    var t = addDays(todayStr(), 1);
+    form.dueDate = form.dueDate === t ? '' : t;
+    if (!form.dueDate) { form.dueTime = ''; form.repeat = 'none'; }
+    paintForm();
+  });
+  $('dateInput').addEventListener('change', function () {
+    form.dueDate = this.value || '';
+    if (!form.dueDate) { form.dueTime = ''; form.repeat = 'none'; }
+    paintForm();
+  });
+  $('timeInput').addEventListener('change', function () {
+    form.dueTime = this.value || '';
+    if (form.dueTime && !form.dueDate) form.dueDate = todayStr();
+    paintForm();
+  });
+  $('chipFlag').addEventListener('click', function () { form.flag = !form.flag; paintForm(); });
+  $('repeatInput').addEventListener('change', function () {
+    form.repeat = REPEAT_NAMES[this.value] ? this.value : 'none';
+    if (form.repeat !== 'none' && !form.dueDate) form.dueDate = todayStr();
+    paintForm();
+  });
+
   $('delBtn').addEventListener('click', function () {
     var i = -1;
     for (var k = 0; k < tasks.length; k++) if (tasks[k].id === editingId) i = k;
@@ -428,8 +655,8 @@ body.booting *{transition:none!important}
 
   $('clearDone').addEventListener('click', function () {
     var before = tasks.slice();
-    var n = tasks.filter(function (t) { return t.done; }).length;
-    tasks = tasks.filter(function (t) { return !t.done; });
+    var n = 0;
+    tasks = tasks.filter(function (t) { var drop = t.section === section && t.done; if (drop) n++; return !drop; });
     save();
     render();
     snack('Cleared ' + n + ' done', function () { tasks = before; save(); render(); });
@@ -447,6 +674,28 @@ body.booting *{transition:none!important}
     var li = cb.closest('.task');
     var t = li && find(li.dataset.id);
     if (!t) return;
+
+    if (cb.checked && t.repeat !== 'none') {
+      // Repeating: log this one as done, roll the task forward to its next date
+      var before = { dueDate: t.dueDate };
+      var copy = clean(t);
+      copy.id = uid(); copy.done = true; copy.doneAt = Date.now(); copy.repeat = 'none';
+      tasks.push(copy);
+      var next = nextDate(t.dueDate || todayStr(), t.repeat), today = todayStr();
+      while (next < today) next = nextDate(next, t.repeat);
+      t.dueDate = next;
+      save();
+      var finish = function () {
+        render();
+        snack('Next: ' + dayName(next), function () {
+          tasks = tasks.filter(function (x) { return x.id !== copy.id; });
+          t.dueDate = before.dueDate; save(); render();
+        });
+      };
+      if (!motion.matches) { li.classList.add('leaving'); setTimeout(finish, 300); } else finish();
+      return;
+    }
+
     t.done = cb.checked;
     t.doneAt = cb.checked ? Date.now() : null;
     save();
@@ -463,9 +712,25 @@ body.booting *{transition:none!important}
     if (b) openDialog(b.parentNode.dataset.id);
   });
 
+  // section switcher + swipe between sections
+  Array.prototype.forEach.call(document.querySelectorAll('.nav-btn'), function (btn) {
+    btn.addEventListener('click', function () { switchTo(btn.dataset.section); });
+  });
+  var sx = 0, sy = 0, tracking = false;
+  document.addEventListener('touchstart', function (e) {
+    tracking = $('dialog').hidden && e.touches.length === 1;
+    if (tracking) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }
+  }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (!tracking) return;
+    tracking = false;
+    var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) > 70 && Math.abs(dy) < 50) switchTo(dx < 0 ? 'others' : 'hospital');
+  }, { passive: true });
+
   // Material ripple on the FAB and buttons
   document.addEventListener('pointerdown', function (e) {
-    var el = e.target.closest && e.target.closest('.fab, .text-btn, .filled-btn');
+    var el = e.target.closest && e.target.closest('.fab, .text-btn, .filled-btn, .chip');
     if (!el || motion.matches) return;
     var r = el.getBoundingClientRect();
     var d = Math.max(r.width, r.height) * 2.2;
@@ -478,13 +743,11 @@ body.booting *{transition:none!important}
     setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 650);
   });
 
-  // iOS only shows pressed states once a touch listener exists
-  document.addEventListener('touchstart', function () {}, { passive: true });
-
-  // Refresh the date and times when the app comes back to the front
+  // Refresh dates, times and overdue marks when the app comes back to the front, and each minute
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible' && $('dialog').hidden) render();
   });
+  setInterval(function () { if (document.visibilityState === 'visible' && $('dialog').hidden) render(); }, 60000);
 
   /* ---------- boot ---------- */
   document.body.classList.add('booting');
